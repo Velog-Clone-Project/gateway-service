@@ -20,33 +20,52 @@ import java.nio.charset.StandardCharsets;
 
 @Component
 @Slf4j
+// 커스텀 필터를 만들기 위해서 AbstractGatewayFilterFactory를 상속
 public class AuthorizationHeaderFilter extends AbstractGatewayFilterFactory<AuthorizationHeaderFilter.Config> {
 
     private final JwtTokenProvider jwtTokenProvider;
 
     public AuthorizationHeaderFilter(JwtTokenProvider jwtTokenProvider) {
+
         super(Config.class);
         this.jwtTokenProvider = jwtTokenProvider;
     }
 
+    // 라우트 정의 시 해당 필터가 어떻게 동작할지 정의
+    // config는 application.yml의 args: 부분에서 받은 값
     @Override
     public GatewayFilter apply(Config config) {
+
         return (exchange, chain) -> {
+
+            // 헤더값 추출. config.headerName에 Authorization이라면 해당 헤더 값을 읽어온다.
             String authorizationHeader = exchange.getRequest().getHeaders().getFirst(config.headerName);
+
+            // 헤더값이 존재하고, Bearer로 시작하는지 확인
             if (StringUtils.hasText(authorizationHeader) && authorizationHeader.startsWith(config.granted + " ")) {
+
+                // Bearer 다음에 오는 토큰을 추출
                 String token = authorizationHeader.substring(config.granted.length() + 1); // Bearer
+
                 try {
+                    // 토큰이 유효한지 검증
                     if (jwtTokenProvider.validateToken(token)) {
 
+                        // 요청 경로 확인
                         String path = exchange.getRequest().getURI().getPath();
+
+                        // 로그아웃 경로인 경우 userId를 헤더에 추가
                         if(path.equals("/auth/logout")){
+                            // 토큰에서 userId를 추출
                             String userId = jwtTokenProvider.getUserId(token);
 
+                            // 기존 요청에 X-User-Id 헤더를 덧붙여 downstream 서비스(auth-service 등)로 전달
+                            // Spring Cloud Gateway에서는 ServerHttpRequest를 mutate() 로 복사/변경해야만 해더를 조작할 수 있다.
                             ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
                                     .header("X-User-Id", userId)
                                     .build();
 
-                            // Token is valid, continue to the next filter
+                            //  변경된 요청으로 필터 체인 계속 진행
                             return chain.filter(exchange.mutate().request(mutatedRequest).build());
                         }
 
@@ -62,6 +81,8 @@ public class AuthorizationHeaderFilter extends AbstractGatewayFilterFactory<Auth
         };
     }
 
+    // 인증실패시 호출 메서드
+    // 401 Unauthorized 응답을 JSON 응답 본문과 함께 반환
     private Mono<Void> unauthorizedResponse(ServerWebExchange exchange) {
         exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
         exchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_JSON);
@@ -74,6 +95,8 @@ public class AuthorizationHeaderFilter extends AbstractGatewayFilterFactory<Auth
 
     @Getter
     @Setter
+    // 필터에서 사용하는 설정값을 외부 application.yml 등에서 주입받기 위한 클래스
+    // args: 로 전달된 값을 이 클래스에 매핑
     public static class Config {
         private String headerName;      // Authorization
         private String granted;          // Bearer
