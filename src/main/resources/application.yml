@@ -1,12 +1,12 @@
 server:
   port: 8080
 
-eureka:
-  client:
-    register-with-eureka: true
-    fetch-registry: true
-    service-url:
-      defaultZone: ${EUREKA_URL:http://192.168.192.2:30061/eureka}
+#eureka:
+#  client:
+#    register-with-eureka: true
+#    fetch-registry: true
+#    service-url:
+#      defaultZone: ${EUREKA_URL:http://192.168.192.2:30061/eureka}
 
 spring:
   application:
@@ -14,9 +14,4 @@ spring:
 
   config:
     import: optional:configserver:${CONFIG_SERVER_URL:http://192.168.192.2:30088}
-    
-  cloud:
-    gateway:
-      discovery:
-        locator:
-          enabled: true
+
