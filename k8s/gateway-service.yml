@@ -28,6 +28,7 @@ spec:
       labels:
         app: gateway-service
     spec:
+      serviceAccountName: default
       initContainers:
         - name: wait-for-config
           image: curlimages/curl:8.7.1
