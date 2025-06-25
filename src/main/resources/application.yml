@@ -6,11 +6,11 @@ eureka:
     register-with-eureka: true
     fetch-registry: true
     service-url:
-      defaultZone: ${EUREKA_URL:http://192.168.192.2:8761/eureka}
+      defaultZone: ${EUREKA_URL:http://192.168.192.2:30061/eureka}
 
 spring:
   application:
     name: gateway-service
 
   config:
-    import: optional:configserver:${CONFIG_SERVER_URL:http://192.168.192.2:8888}
+    import: optional:configserver:${CONFIG_SERVER_URL:http://192.168.192.2:30088}

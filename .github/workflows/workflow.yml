@@ -35,13 +35,22 @@ jobs:
           echo "${{ secrets.DOCKER_TOKEN }}" | docker login -u "${{ secrets.DOCKER_USER }}" --password-stdin
           docker push ${{ secrets.DOCKER_USER }}/gateway-service:latest
 
-      - name: SSH into infra-node and restart gateway-service
-        uses: appleboy/ssh-action@v1.0.0
+      - name: Copy Kubernetes manifest to server
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          source: "./k8s/gateway-service.yml"
+          target: "~/gateway/"
+
+      - name: Deploy to Kubernetes on remote server
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           script: |
-            cd /home/user/gateway-service
-            docker compose pull gateway-service
-            docker compose up -d --no-deps gateway-service
+            cd ~/gateway/k8s
+            kubectl delete deployment gateway-service --ignore-not-found
+            kubectl apply -f gateway-service.yml
