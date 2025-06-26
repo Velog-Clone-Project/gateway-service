@@ -16,6 +16,8 @@ spring:
     import: optional:configserver:${CONFIG_SERVER_URL:http://192.168.192.2:30088}
 
   cloud:
+    discovery:
+      enabled: true
     kubernetes:
       discovery:
         enabled: true
