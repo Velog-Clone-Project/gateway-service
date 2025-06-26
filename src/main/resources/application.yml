@@ -8,3 +8,14 @@ spring:
   config:
     import: optional:configserver:${CONFIG_SERVER_URL:http://192.168.192.2:30088}
 
+  cloud:
+    gateway:
+      globalcors:
+        cors-configurations:
+          [ /** ]':
+            allowedOrigins: "http://localhost:5173"
+            allowedMethods:
+              - GET
+              - POST
+              - PATCH
+              - DELETE
