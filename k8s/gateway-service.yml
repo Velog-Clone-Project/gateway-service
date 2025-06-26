@@ -42,18 +42,6 @@ spec:
               done
               echo "Config-service is UP.";
 
-#        - name: wait-for-discovery
-#          image: curlimages/curl:8.7.1
-#          command: [ "/bin/sh", "-c" ]
-#          args:
-#            - |
-#              echo "Waiting for discovery-service...";
-#              until curl -s http://discovery-service:8761/actuator/health | grep '"status":"UP"' > /dev/null; do
-#                echo "Discovery-service not ready yet. Waiting...";
-#                sleep 3;
-#              done
-#              echo "Discovery-service is UP.";
-
       containers:
         - name: gateway-service
           image: lhdmir/gateway-service:latest
@@ -62,8 +50,6 @@ spec:
           env:
             - name: CONFIG_SERVER_URL
               value: http://config-service:8888
-#            - name: EUREKA_URL
-#              value: http://discovery-service:8761/eureka
           readinessProbe:
             httpGet:
               path: /actuator/health
