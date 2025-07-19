@@ -1,14 +1,12 @@
-name: Deploy Gateway Service (on PR merge to main)
+name: Deploy Gateway Service
 
 on:
-  pull_request:
-    types: [closed]
+  push:
     branches: [ main ]
 
 jobs:
-  deploy:
-    if: github.event.pull_request.merged == true
-    runs-on: [self-hosted, gateway-service]
+  build:
+    runs-on: [ self-hosted, gateway-service ]
 
     steps:
       - name: Checkout source
@@ -27,6 +25,11 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew clean build
 
+  deploy:
+    runs-on: [ self-hosted, gateway-service ]
+    needs: build
+
+    steps:
       - name: Build Docker image
         run: docker build -t ${{ secrets.DOCKER_USER }}/gateway-service:latest .
 
