@@ -24,3 +24,294 @@ spring:
             allow-credentials: true
 
         add-to-simple-url-handler-mapping: true
+      routes:
+        # oauth2 login
+        - id: auth-oauth2-login
+          uri: lb://auth-service
+          predicates:
+            - Path=/oauth2/authorization/**
+
+        - id: auth-oauth2-callback
+          uri: lb://auth-service
+          predicates:
+            - Path=/login/oauth2/code/**
+
+        # 로그아웃 (로그인 필요)
+        - id: auth-logout
+          uri: lb://auth-service
+          predicates:
+            - Path=/auth/logout
+            - Method=POST
+          filters:
+            - name: AuthorizationHeaderFilter
+              args:
+                headerName: Authorization
+                granted: Bearer
+
+        # 회원가입, 로그인, 토큰 재발급
+        - id: auth-general
+          uri: lb://auth-service
+          predicates:
+            - Path=/auth/**
+
+        # # 유저 블로그 조회 (비로그인 가능)
+        # - id: user-blog
+        #   uri: lb://user-service
+        #   predicates:
+        #     - Path=/users/*/blog
+        #     - Method=GET
+
+        # # 내 프로필 조회 (로그인 필요)
+        # - id: user-profile
+        #   uri: lb://user-service
+        #   predicates:
+        #     - Path=/users/me
+        #     - Method=GET
+        #   filters:
+        #     - name: AuthorizationHeaderFilter
+        #       args:
+        #         headerName: Authorization
+        #         granted: Bearer
+
+        # # 내 프로필 수정 (로그인 필요)
+        # - id: user-profile-update
+        #   uri: lb://user-service
+        #   predicates:
+        #     - Path=/users/me
+        #     - Method=PATCH
+        #   filters:
+        #     - name: AuthorizationHeaderFilter
+        #       args:
+        #         headerName: Authorization
+        #         granted: Bearer
+
+        # # 이미지 업로드는 multipart/form-data 를 사용하므로, Gateway 설정에 따라
+        # # spring.servlet.multipart.max-file-size 등을 추가할 수 있다.
+        # # 프로필 이미지 업로드 (로그인 필요)
+        # - id: user-profile-image-upload
+        #   uri: lb://user-service
+        #   predicates:
+        #     - Path=/users/me/profile-image
+        #     - Method=PATCH
+        #   filters:
+        #     - name: AuthorizationHeaderFilter
+        #       args:
+        #         headerName: Authorization
+        #         granted: Bearer
+
+        # # 프로필 이미지 삭제 (로그인 필요)
+        # - id: user-profile-image-delete
+        #   uri: lb://user-service
+        #   predicates:
+        #     - Path=/users/me/profile-image
+        #     - Method=DELETE filters:
+        #     - name: AuthorizationHeaderFilter
+        #       args:
+        #         headerName: Authorization
+        #         granted: Bearer
+
+        # # 좋아요 누른 글 목록 조회 (로그인 필요)
+        # - id: user-liked-posts
+        #   uri: lb://user-service
+        #   predicates:
+        #     - Path=/users/me/liked-posts
+        #     - Method=GET
+        #   filters:
+        #     - name: AuthorizationHeaderFilter
+        #       args:
+        #         headerName: Authorization
+        #         granted: Bearer
+
+        # # 회원 탈퇴 (로그인 필요)
+        # - id: user-delete
+        #   uri: lb://user-service
+        #   predicates:
+        #     - Path=/users/me
+        #     - Method=DELETE
+        #   filters:
+        #     - name: AuthorizationHeaderFilter
+        #       args:
+        #         headerName: Authorization
+        #         granted: Bearer
+
+        # # 전체 게시글 목록 조회 (비로그인 가능)
+        # - id: post-list
+        #   uri: lb://post-service
+        #   predicates:
+        #     - Path=/posts
+        #     - Method=GET
+
+        # # 게시글 단건 조회 (비로그인 가능)
+        # - id: post-detail
+        #   uri: lb://post-service
+        #   predicates:
+        #     - Path=/posts/*
+        #     - Method=GET
+
+        # # 게시글 작성 (로그인 필요)
+        # - id: post-create
+        #   uri: lb://post-service
+        #   predicates:
+        #     - Path=/posts
+        #     - Method=POST
+        #   filters:
+        #     - name: AuthorizationHeaderFilter
+        #       args:
+        #         headerName: Authorization
+        #         granted: Bearer
+
+        # # 게시글 수정 (로그인 필요)
+        # - id: post-update
+        #   uri: lb://post-service
+        #   predicates:
+        #     - Path=/posts/*
+        #     - Method=PATCH
+        #   filters:
+        #     - name: AuthorizationHeaderFilter
+        #       args:
+        #         headerName: Authorization
+        #         granted: Bearer
+
+        # # 게시글 삭제 (로그인 필요)
+        # - id: post-delete
+        #   uri: lb://post-service
+        #   predicates:
+        #     - Path=/posts/*
+        #     - Method=DELETE
+        #   filters:
+        #     - name: AuthorizationHeaderFilter
+        #       args:
+        #         headerName: Authorization
+        #         granted: Bearer
+
+        # # 게시글 좋아요 (로그인 필요)
+        # - id: post-like
+        #   uri: lb://post-service
+        #   predicates:
+        #     - Path=/posts/*/like
+        #     - Method=POST
+        #   filters:
+        #     - name: AuthorizationHeaderFilter
+        #       args:
+        #         headerName: Authorization
+        #         granted: Bearer
+
+        # # 게시글 좋아요 취소 (로그인 필요)
+        # - id: post-unlike
+        #   uri: lb://post-service
+        #   predicates:
+        #     - Path=/posts/*/like
+        #     - Method=DELETE
+        #   filters:
+        #     - name: AuthorizationHeaderFilter
+        #       args:
+        #         headerName: Authorization
+        #         granted: Bearer
+
+        # # 이미지 업로드 (로그인 필요)
+        # - id: post-image-upload
+        #   uri: lb://post-service
+        #   predicates:
+        #     - Path=/posts/images
+        #     - Method=POST
+        #   filters:
+        #     - name: AuthorizationHeaderFilter
+        #       args:
+        #         headerName: Authorization
+        #         granted: Beare
+
+        # # 댓글 작성 (로그인 필요)
+        # - id: comment-create
+        #   uri: lb://comment-service
+        #   predicates:
+        #     - Path=/comments
+        #     - Method=POST
+        #   filters:
+        #     - name: AuthorizationHeaderFilter
+        #       args:
+        #         headerName: Authorization
+        #         granted: Bearer
+
+        # # 댓글 수정 (로그인 필요)
+        # - id: comment-update
+        #   uri: lb://comment-service
+        #   predicates:
+        #     - Path=/comments/*
+        #     - Method=PATCH
+        #   filters:
+        #     - name: AuthorizationHeaderFilter
+        #       args:
+        #         headerName: Authorization
+        #         granted: Bearer
+
+        # # 댓글 삭제 (로그인 필요)
+        # - id: comment-delete
+        #   uri: lb://comment-service
+        #   predicates:
+        #     - Path=/comments/*
+        #     - Method=DELETE
+        #   filters:
+        #     - name: AuthorizationHeaderFilter
+        #       args:
+        #         headerName: Authorization
+        #         granted: Bearer
+
+        # # 알림 목록 조회 (로그인 필요)
+        # - id: notification-list
+        #   uri: lb://notification-service
+        #   predicates:
+        #     - Path=/notifications
+        #     - Method=GET
+        #   filters:
+        #     - name: AuthorizationHeaderFilter
+        #       args:
+        #         headerName: Authorization
+        #         granted: Bearer
+
+        # # 알림 단건 읽음 처리 (로그인 필요)
+        # - id: notification-read-one
+        #   uri: lb://notification-service
+        #   predicates:
+        #     - Path=/notifications/*/read
+        #     - Method=PATCH
+        #   filters:
+        #     - name: AuthorizationHeaderFilter
+        #       args:
+        #         headerName: Authorization
+        #         granted: Bearer
+
+        # # 알림 일괄 읽음 처리 (로그인 필요)
+        # - id: notification-read-all
+        #   uri: lb://notification-service
+        #   predicates:
+        #     - Path=/notifications/read
+        #     - Method=PATCH
+        #   filters:
+        #     - name: AuthorizationHeaderFilter
+        #       args:
+        #         headerName: Authorization
+        #         granted: Bearer
+
+        # # 알림 단건 삭제 (로그인 필요)
+        # - id: notification-delete-one
+        #   uri: lb://notification-service
+        #   predicates:
+        #     - Path=/notifications/*
+        #     - Method=DELETE
+        #   filters:
+        #     - name: AuthorizationHeaderFilter
+        #       args:
+        #         headerName: Authorization
+        #         granted: Bearer
+
+        # # 알림 전체 삭제 (로그인 필요)
+        # - id: notification-delete-all
+        #   uri: lb://notification-service
+        #   predicates:
+        #     - Path=/notifications
+        #     - Method=DELETE
+        #   filters:
+        #     - name: AuthorizationHeaderFilter
+        #       args:
+        #         headerName: Authorization
+        #         granted: Bearer
