@@ -6,7 +6,8 @@ spring:
     name: gateway-service
 
   config:
-    import: optional:configserver:${CONFIG_SERVER_URL:http://192.168.192.2:30088}
+    #    import: optional:configserver:${CONFIG_SERVER_URL:http://192.168.192.2:30088} # VPN
+    import: optional:configserver:${CONFIG_SERVER_URL:http://config-service:8888} # Telepresence
 
   cloud:
     gateway:
