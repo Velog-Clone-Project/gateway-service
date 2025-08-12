@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpRequest;
@@ -38,46 +39,85 @@ public class AuthorizationHeaderFilter extends AbstractGatewayFilterFactory<Auth
 
         return (exchange, chain) -> {
 
+            // 1) CORS preflight는 무조건 통과
+            if (exchange.getRequest().getMethod() == HttpMethod.OPTIONS) {
+                return chain.filter(exchange);
+            }
+
+
+            // 2) Authorization 헤더 검사
             // 헤더값 추출. config.headerName에 Authorization이라면 해당 헤더 값을 읽어온다.
             String authorizationHeader = exchange.getRequest().getHeaders().getFirst(config.headerName);
 
-            // 헤더값이 존재하고, Bearer로 시작하는지 확인
-            if (StringUtils.hasText(authorizationHeader) && authorizationHeader.startsWith(config.granted + " ")) {
-
-                // Bearer 다음에 오는 토큰을 추출
-                String token = authorizationHeader.substring(config.granted.length() + 1); // Bearer
-
-                try {
-                    // 토큰이 유효한지 검증
-                    if (jwtTokenProvider.validateToken(token)) {
-
-                        // 요청 경로 확인
-                        String path = exchange.getRequest().getURI().getPath();
-
-                        // 로그아웃 경로인 경우 userId를 헤더에 추가
-                        if(path.equals("/auth/logout")){
-                            // 토큰에서 userId를 추출
-                            String userId = jwtTokenProvider.getUserId(token);
-
-                            // 기존 요청에 X-User-Id 헤더를 덧붙여 downstream 서비스(auth-service 등)로 전달
-                            // Spring Cloud Gateway에서는 ServerHttpRequest를 mutate() 로 복사/변경해야만 해더를 조작할 수 있다.
-                            ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
-                                    .header("X-User-Id", userId)
-                                    .build();
-
-                            //  변경된 요청으로 필터 체인 계속 진행
-                            return chain.filter(exchange.mutate().request(mutatedRequest).build());
-                        }
-
-                        return  chain.filter(exchange); // Token is valid, continue to the next filter
-                    }
-                } catch (TokenException e) {
-                    log.error("Token validation error: {}", e.getMessage());
-                } catch (Exception e) {
-                    log.error("Unexpected error during JWT validation: {}", e.getMessage());
-                }
+            if(!StringUtils.hasText(authorizationHeader) || !authorizationHeader.startsWith(config.granted + " ")){
+                return unauthorizedResponse(exchange);
             }
-            return unauthorizedResponse(exchange); // Token is not valid, respond with unauthorized
+
+            String token = authorizationHeader.substring((config.granted + " ").length());
+
+            try {
+                // 3) 토큰 검증
+                if (!jwtTokenProvider.validateToken(token)) {
+                    return unauthorizedResponse(exchange);
+                }
+
+                // 4) 토큰에서 userId 추출 후 항상 주입(덮어쓰기)
+                String userId = jwtTokenProvider.getUserId(token);
+                ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
+                        .headers(h -> {
+                            // 클라이언트가 보낸 값이 있어도 게이트웨이가 덮어씀
+                            h.set("X-User-Id", userId);
+                            // 필요하면 access token도 정리 가능: h.remove(HttpHeaders.AUTHORIZATION);
+                        })
+                        .build();
+
+                return chain.filter(exchange.mutate().request(mutatedRequest).build());
+
+            } catch (TokenException e) {
+                log.error("Token validation error: {}", e.getMessage());
+                return unauthorizedResponse(exchange);
+            } catch (Exception e) {
+                log.error("Unexpected error during JWT validation: {}", e.getMessage());
+                return unauthorizedResponse(exchange);
+            }
+
+//            // 헤더값이 존재하고, Bearer로 시작하는지 확인
+//            if (StringUtils.hasText(authorizationHeader) && authorizationHeader.startsWith(config.granted + " ")) {
+//
+//                // Bearer 다음에 오는 토큰을 추출
+//                String token = authorizationHeader.substring(config.granted.length() + 1); // Bearer
+//
+//                try {
+//                    // 토큰이 유효한지 검증
+//                    if (jwtTokenProvider.validateToken(token)) {
+//
+//                        // 요청 경로 확인
+//                        String path = exchange.getRequest().getURI().getPath();
+//
+//                        // 로그아웃 경로인 경우 userId를 헤더에 추가
+//                        if(path.equals("/auth/logout")){
+//                            // 토큰에서 userId를 추출
+//                            String userId = jwtTokenProvider.getUserId(token);
+//
+//                            // 기존 요청에 X-User-Id 헤더를 덧붙여 downstream 서비스(auth-service 등)로 전달
+//                            // Spring Cloud Gateway에서는 ServerHttpRequest를 mutate() 로 복사/변경해야만 해더를 조작할 수 있다.
+//                            ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
+//                                    .header("X-User-Id", userId)
+//                                    .build();
+//
+//                            //  변경된 요청으로 필터 체인 계속 진행
+//                            return chain.filter(exchange.mutate().request(mutatedRequest).build());
+//                        }
+//
+//                        return  chain.filter(exchange); // Token is valid, continue to the next filter
+//                    }
+//                } catch (TokenException e) {
+//                    log.error("Token validation error: {}", e.getMessage());
+//                } catch (Exception e) {
+//                    log.error("Unexpected error during JWT validation: {}", e.getMessage());
+//                }
+//            }
+//            return unauthorizedResponse(exchange); // Token is not valid, respond with unauthorized
         };
     }
 
